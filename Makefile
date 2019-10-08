@@ -1,18 +1,15 @@
-.PHONY: all docker clean
+.PHONY: docker clean compose-up up
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 BINARY_NAME=bin/build
 
-all: build
-docker-build: build docker
-up: docker-build compose-up
+up: build docker compose-up
 build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_NAME) -v src/main.go
 clean:
-	$(GOCLEAN) src/
+	$(GOCLEAN) ./...
 	rm -f $(BINARY_NAME)
-	rm -f $(BINARY_UNIX)
 docker:
 	 docker build --file="./docker/Dockerfile" --tag="otus-hiload:v1" --force-rm .
 compose-up:
