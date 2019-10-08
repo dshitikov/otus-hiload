@@ -1,0 +1,24 @@
+<html>
+<body>
+<a href="/logout">выход</a><br />
+{{if .error}}
+    <p style="color:red">{{ .error}}</p>
+{{end}}
+<form enctype="multipart/form-data" action="/me/edit" method="post">
+    <fieldset>
+        <legend>Заполните информацию о себе</legend>
+
+        <label for="descr">Описание</label>
+        <textarea rows="10" cols="60" name="descr" id="descr">{{ .description}}</textarea><br/>
+
+        <label for="photo">Фото</label>
+        <input type="file" name="photo" /><br/>
+        {{if .photo}}}
+        <img src="" alt="photo" />
+        {{end}}
+
+        <input type="submit" value="Сохранить" />
+    </fieldset>
+</form>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<html>
+<body>
+<h1>Пользователь {{ .name}}</h1>
+<a href="/">главная</a> | <a href="/me/edit">редактировать</a> | <a href="/logout">выход</a><br/><br/>
+{{if .image}}
+    <label for="photo">Фото:</label><br/>
+    <img name="photo" src="/img/{{ .image}}" alt="фото" /><br/>
+{{end}}
+<br/>Описание:<br />
+<p>{{ .description}}</p>
+</body>
+</html>

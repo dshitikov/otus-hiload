@@ -1,0 +1,26 @@
+<html>
+<body>
+{{if .error}}
+<p style="color:red">{{ .error}}</p>
+{{end}}
+<form action="/reg" method="post">
+    <fieldset>
+        <legend>Регистрация</legend>
+
+        <label for="login">Логин</label>
+        <input type="text" name="login" id="login" value="{{ .login}}" /><br/><br/>
+
+        <label for="name">Имя</label>
+        <input type="text" name="name" id="name" value="{{ .name}}" /><br/><br/>
+
+        <label for="password">Пароль</label>
+        <input type="password" name="password" id="password" /><br/><br/>
+
+        <label for="password2">Пароль еще раз</label>
+        <input type="password" name="password2" id="password2" /><br/><br/>
+
+        <input type="submit" value="Войти" />
+    </fieldset>
+</form>
+</body>
+</html>
