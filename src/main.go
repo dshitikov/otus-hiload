@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"otus-hiload/src/constants"
+	"otus-hiload/src/file_storage"
 	"otus-hiload/src/middleware"
 	"otus-hiload/src/repository"
 	"otus-hiload/src/service"
@@ -42,11 +43,13 @@ func main() {
 	}
 
 	repo := repository.NewMysqlRepository(dsn)
-	userService := service.NewUserService(repo, store, storageDir)
+	storage := file_storage.NewFileStorage(storageDir)
+	userService := service.NewUserService(repo, store, storage)
 
 	r := mux.NewRouter()
+	r.Use(middleware.RecoverHandler)
 	r.Handle(constants.LoginPath, http.HandlerFunc(userService.LoginHandler)).Methods("GET", "POST")
-	r.Handle(constants.LogoutPath, http.HandlerFunc(userService.LogoutHandler)).Methods("GET")
+	r.Handle(constants.LogoutPath, middleware.AuthHandler(http.HandlerFunc(userService.LogoutHandler), store)).Methods("GET")
 	r.Handle(constants.RegPath, http.HandlerFunc(userService.RegHandler)).Methods("GET", "POST")
 	r.Handle(constants.MePath, middleware.AuthHandler(http.HandlerFunc(userService.MeHandler), store)).Methods("GET")
 	r.Handle(constants.MeEditPath, middleware.AuthHandler(http.HandlerFunc(userService.EditHandler), store)).Methods("GET", "POST")

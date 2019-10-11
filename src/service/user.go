@@ -7,13 +7,14 @@ import (
 	"log"
 	"net/http"
 	"otus-hiload/src/constants"
+	"otus-hiload/src/file_storage"
 	"otus-hiload/src/repository"
 )
 
 type userService struct {
 	UserRepository repository.IUserRepository
 	store          *sessions.CookieStore
-	storageDir     string
+	storage        file_storage.IFileStorage
 }
 
 type IUserService interface {
@@ -23,8 +24,9 @@ type IUserService interface {
 	IPageService
 }
 
-func NewUserService(repository repository.IUserRepository, store *sessions.CookieStore, storageDir string) IUserService {
-	return &userService{UserRepository: repository, store: store, storageDir: storageDir}
+func NewUserService(repository repository.IUserRepository, store *sessions.CookieStore,
+	storage file_storage.IFileStorage) IUserService {
+	return &userService{UserRepository: repository, store: store, storage: storage}
 }
 
 func (s *userService) LoginHandler(w http.ResponseWriter, r *http.Request) {

@@ -3,14 +3,10 @@ package service
 import (
 	"errors"
 	"github.com/gorilla/mux"
-	uuid "github.com/satori/go.uuid"
 	"html"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"otus-hiload/src/constants"
-	"path"
 	"strconv"
 )
 
@@ -28,7 +24,6 @@ func (s *userService) EditHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, constants.RootPath, http.StatusFound)
 	}
 
-	// show edit form /edit
 	if r.Method == "GET" {
 		s.renderForm(w, "edit", nil)
 	}
@@ -49,7 +44,7 @@ func (s *userService) EditHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		description = html.EscapeString(description)
 
-		file, handler, err := r.FormFile("photo")
+		file, header, err := r.FormFile("photo")
 		if err != nil {
 			s.logError("EditHandler formFile", err)
 			s.renderForm(w, "edit", errors.New("не выбран файл фото"))
@@ -57,39 +52,13 @@ func (s *userService) EditHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
-		log.Printf("Uploaded File: %+v\n", handler.Filename)
-		log.Printf("File Size: %+v\n", handler.Size)
-		log.Printf("MIME Header: %+v\n", handler.Header)
+		log.Printf("Uploaded File: %+v\n", header.Filename)
+		log.Printf("File Size: %+v\n", header.Size)
+		log.Printf("MIME Header: %+v\n", header.Header)
 
-		err = s.checkFileType(file)
+		fName, err := s.storage.SaveFile(file, header.Filename)
 		if err != nil {
-			s.logError("EditHandler formFile", err)
-			s.renderForm(w, "edit", errors.New("необходимо загружать gif/jpg/png изображение"))
-			return
-		}
-		_, err = file.Seek(0, io.SeekStart)
-		if err != nil {
-			s.logError("EditHandler Seek", err)
-			s.renderForm(w, "edit", errors.New("ошибка загрузки файла"))
-			return
-		}
-
-		ext := path.Ext(handler.Filename)
-		uid := uuid.NewV4()
-		fName := uid.String() + ext
-		targetFileName := path.Join(s.storageDir, fName)
-		log.Printf("targetFileName=%s", targetFileName)
-
-		f, err := os.OpenFile(targetFileName, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			s.logError("EditHandler OpenFile", err)
-			s.renderForm(w, "edit", errors.New("ошибка загрузки файла"))
-			return
-		}
-		defer f.Close()
-		_, err = io.Copy(f, file)
-		if err != nil {
-			s.logError("EditHandler Copy", err)
+			s.logError("saveFile", err)
 			s.renderForm(w, "edit", errors.New("ошибка загрузки файла"))
 			return
 		}
@@ -100,16 +69,15 @@ func (s *userService) EditHandler(w http.ResponseWriter, r *http.Request) {
 		user.PhotoFile = fName
 		err = s.UserRepository.Update(user)
 		if err != nil {
-			s.deleteFile(targetFileName)
+			s.storage.DeleteFile(fName)
 			s.logError("EditHandler UpdateUser", err)
 			s.renderForm(w, "edit", errors.New("внутренняя ошибка сервера"))
 			return
 		}
 
-		s.deleteFile(path.Join(s.storageDir, oldFile))
+		s.storage.DeleteFile(oldFile)
 		http.Redirect(w, r, constants.MePath, http.StatusFound)
 	}
-	// return mime.TypeByExtension("." + format)
 }
 
 func (s *userService) MeHandler(w http.ResponseWriter, r *http.Request) {
