@@ -4,8 +4,8 @@
 <a href="/me">текущий пользователь</a> | <a href="/logout">Выход</a><br/><br/>
 <h2>Список пользователей:</h2>
 {{ range .users }}
-{{ if ne .Id $.myId }}
-<a href="/user/{{ .Id }}">{{ .Name }}</a><br/>
+{{ if ne .ID $.myId }}
+<a href="/user/{{ .ID }}">{{ .Name }}</a><br/>
 {{ end }}
 {{ end }}
 </body>

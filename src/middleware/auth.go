@@ -2,21 +2,22 @@ package middleware
 
 import (
 	"context"
-	"github.com/gorilla/sessions"
+	"github.com/alexedwards/scs/v2"
 	"net/http"
 	"otus-hiload/src/constants"
 )
 
-func AuthHandler(h http.Handler, store *sessions.CookieStore) http.Handler {
+func AuthHandler(h http.Handler, sessionManager *scs.SessionManager) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, _ := store.Get(r, constants.CookieName)
+		auth := sessionManager.GetBool(r.Context(), constants.CtxAuthenticated)
 
-		if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+		if !auth {
 			http.Redirect(w, r, constants.LoginPath, http.StatusFound)
 			return
 		}
 
-		newRequest := r.WithContext(context.WithValue(r.Context(), constants.CtxUserId, session.Values["user_id"]))
+		userID := sessionManager.Get(r.Context(), constants.CtxUserId).(int64)
+		newRequest := r.WithContext(context.WithValue(r.Context(), constants.CtxUserId, userID))
 		*r = *newRequest
 
 		h.ServeHTTP(w, r)

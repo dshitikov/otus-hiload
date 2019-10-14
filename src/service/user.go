@@ -3,8 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
-	"github.com/gorilla/sessions"
-	"log"
+	"github.com/alexedwards/scs/v2"
 	"net/http"
 	"otus-hiload/src/constants"
 	"otus-hiload/src/file_storage"
@@ -13,7 +12,7 @@ import (
 
 type userService struct {
 	UserRepository repository.IUserRepository
-	store          *sessions.CookieStore
+	sessionManager *scs.SessionManager
 	storage        file_storage.IFileStorage
 }
 
@@ -24,9 +23,9 @@ type IUserService interface {
 	IPageService
 }
 
-func NewUserService(repository repository.IUserRepository, store *sessions.CookieStore,
+func NewUserService(repository repository.IUserRepository, sessionManager *scs.SessionManager,
 	storage file_storage.IFileStorage) IUserService {
-	return &userService{UserRepository: repository, store: store, storage: storage}
+	return &userService{UserRepository: repository, sessionManager: sessionManager, storage: storage}
 }
 
 func (s *userService) LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,13 +52,9 @@ func (s *userService) LoginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		//
-		session, _ := s.store.Get(r, constants.CookieName)
-		// Set user as authenticated
-		session.Values["authenticated"] = true
-		session.Values["user_id"] = user.Id
-		err = session.Save(r, w)
-		s.logError("store.Save error: %s", err)
+		err = s.setAuthenticated(r.Context(), user)
 		if err != nil {
+			s.logError("sessionManager.RenewToken error: %s", err)
 			s.renderForm(w, "login", errors.New("внутренняя ошибка сервера"))
 			return
 		}
@@ -116,22 +111,19 @@ func (s *userService) RegHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		//
-		session, _ := s.store.Get(r, "auth")
-		session.Values["authenticated"] = true
-		session.Values["user_id"] = user.Id
-		err = session.Save(r, w)
-		s.logError("store.Save error: %s", err)
+		err = s.setAuthenticated(r.Context(), user)
+		s.logError("sessionManager.RenewToken error: %s", err)
+		if err != nil {
+			params["error"] = "внутренняя ошибка сервера"
+			s.renderFormParams(w, "reg", params)
+			return
+		}
 		http.Redirect(w, r, constants.MePath, http.StatusFound)
 	}
 }
 
 func (s *userService) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := s.store.Get(r, constants.CookieName)
-	session.Values["authenticated"] = false
-	session.Values["user_id"] = nil
-	err := session.Save(r, w)
-	if err != nil {
-		log.Printf("logout session save error: %s", err.Error())
-	}
+	err := s.setUnauthenticated(r.Context())
+	s.logError("setUnauthenticated", err)
 	http.Redirect(w, r, constants.RootPath, http.StatusFound)
 }

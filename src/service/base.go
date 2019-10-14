@@ -37,3 +37,23 @@ func (s *userService) getUserFromContext(ctx context.Context) (*repository.User,
 	userId := (ctx.Value(constants.CtxUserId)).(int64)
 	return s.UserRepository.Get(userId)
 }
+
+func (s *userService) setAuthenticated(ctx context.Context, user *repository.User) error {
+	err := s.sessionManager.RenewToken(ctx)
+	if err != nil {
+		return err
+	}
+	s.sessionManager.Put(ctx, constants.CtxAuthenticated, true)
+	s.sessionManager.Put(ctx, constants.CtxUserId, user.ID)
+	return nil
+}
+
+func (s *userService) setUnauthenticated(ctx context.Context) error {
+	err := s.sessionManager.RenewToken(ctx)
+	if err != nil {
+		return err
+	}
+	s.sessionManager.Put(ctx, constants.CtxAuthenticated, false)
+	s.sessionManager.Put(ctx, constants.CtxUserId, nil)
+	return nil
+}

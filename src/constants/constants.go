@@ -9,6 +9,6 @@ const (
 	UserPath   = "/user/{id:[0-9]+}"
 	RootPath   = "/"
 
-	CtxUserId  = "user_id"
-	CookieName = "auth"
+	CtxUserId        = "userID"
+	CtxAuthenticated = "authenticated"
 )

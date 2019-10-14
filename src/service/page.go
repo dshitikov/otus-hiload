@@ -139,6 +139,6 @@ func (s *userService) RootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	params["users"] = users
-	params["myId"] = user.Id
+	params["myId"] = user.ID
 	s.renderFormParams(w, "root", params)
 }

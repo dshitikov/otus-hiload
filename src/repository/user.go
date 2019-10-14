@@ -7,7 +7,7 @@ import (
 )
 
 type User struct {
-	Id           int64
+	ID           int64
 	Login        string
 	Name         string
 	Password     string
@@ -18,12 +18,17 @@ type User struct {
 }
 
 type IUserRepository interface {
+	GetDB() *sql.DB
 	GetAll() ([]*User, error)
 	Get(id int64) (*User, error)
 	Create(*User) error
 	Update(user *User) error
 	IsLoginExist(login string) bool
 	FindByLoginAndPassword(login string, password string) (*User, error)
+}
+
+func (r *repo) GetDB() *sql.DB {
+	return r.db
 }
 
 func (r *repo) GetAll() ([]*User, error) {
@@ -36,7 +41,7 @@ func (r *repo) GetAll() ([]*User, error) {
 	users := make([]*User, 0)
 	for rows.Next() {
 		user := new(User)
-		err := rows.Scan(&user.Id, &user.Login, &user.Name, &user.Description, &user.PhotoFile, &user.CreatedAt)
+		err := rows.Scan(&user.ID, &user.Login, &user.Name, &user.Description, &user.PhotoFile, &user.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +58,7 @@ func (r *repo) Get(id int64) (*User, error) {
 	row := r.db.QueryRow("SELECT id, login, name, description, photo_file, created_at FROM users WHERE id = ?", id)
 
 	user := new(User)
-	err := row.Scan(&user.Id, &user.Login, &user.Name, &user.Description, &user.PhotoFile, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Login, &user.Name, &user.Description, &user.PhotoFile, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +66,7 @@ func (r *repo) Get(id int64) (*User, error) {
 }
 
 func (r *repo) Update(user *User) error {
-	_, err := r.db.Exec("UPDATE users set description = ?, photo_file = ? where id = ?", user.Description, user.PhotoFile, user.Id)
+	_, err := r.db.Exec("UPDATE users set description = ?, photo_file = ? where id = ?", user.Description, user.PhotoFile, user.ID)
 
 	if err != nil {
 		return err
@@ -74,7 +79,7 @@ func (r *repo) IsLoginExist(login string) bool {
 	row := r.db.QueryRow("SELECT id FROM users WHERE login = ?", login)
 
 	user := new(User)
-	err := row.Scan(&user.Id)
+	err := row.Scan(&user.ID)
 
 	if err == sql.ErrNoRows {
 		return false
@@ -91,7 +96,7 @@ func (r *repo) FindByLoginAndPassword(login string, password string) (*User, err
 	row := r.db.QueryRow("SELECT id, login, name, password_hash, description, photo_file, created_at FROM users WHERE login = ?", login)
 
 	user := new(User)
-	err := row.Scan(&user.Id, &user.Login, &user.Name, &user.PasswordHash, &user.Description, &user.PhotoFile, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Login, &user.Name, &user.PasswordHash, &user.Description, &user.PhotoFile, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -118,13 +123,13 @@ func (r *repo) Create(user *User) error {
 		return err
 	}
 
-	userId, err := res.LastInsertId()
+	userID, err := res.LastInsertId()
 
 	if err != nil {
 		return err
 	}
 
-	user.Id = userId
+	user.ID = userID
 
 	return nil
 }
