@@ -7,6 +7,7 @@ const (
 	MePath     = "/me"
 	MeEditPath = "/me/edit"
 	UserPath   = "/user/{id:[0-9]+}"
+	SearchPath = "/search/{name}/{lastname}"
 	RootPath   = "/"
 
 	CtxUserId        = "userID"

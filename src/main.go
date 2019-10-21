@@ -57,6 +57,7 @@ func main() {
 	r.Handle(constants.MeEditPath, middleware.AuthHandler(http.HandlerFunc(userService.EditHandler), sessionManager)).Methods("GET", "POST")
 	r.Handle(constants.RootPath, middleware.AuthHandler(http.HandlerFunc(userService.RootHandler), sessionManager)).Methods("GET")
 	r.Handle(constants.UserPath, middleware.AuthHandler(http.HandlerFunc(userService.UserHandler), sessionManager)).Methods("GET")
+	r.Handle(constants.SearchPath, http.HandlerFunc(userService.SearchHandler)).Methods("GET")
 
 	r.PathPrefix("/img/").Handler(http.StripPrefix("/img/", http.FileServer(http.Dir(storageDir))))
 

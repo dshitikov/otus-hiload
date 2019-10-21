@@ -15,6 +15,7 @@ type IPageService interface {
 	MeHandler(w http.ResponseWriter, r *http.Request)
 	UserHandler(w http.ResponseWriter, r *http.Request)
 	RootHandler(w http.ResponseWriter, r *http.Request)
+	SearchHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *userService) EditHandler(w http.ResponseWriter, r *http.Request) {
@@ -95,6 +96,7 @@ func (s *userService) MeHandler(w http.ResponseWriter, r *http.Request) {
 	params := make(map[string]string)
 	params["description"] = user.Description
 	params["name"] = user.Name
+	params["last_name"] = user.LastName
 	params["image"] = user.PhotoFile
 
 	s.renderFormParams(w, "me", params)
@@ -118,6 +120,7 @@ func (s *userService) UserHandler(w http.ResponseWriter, r *http.Request) {
 	params := make(map[string]string)
 	params["description"] = user.Description
 	params["name"] = user.Name
+	params["last_name"] = user.LastName
 	params["image"] = user.PhotoFile
 
 	s.renderFormParams(w, "user", params)
@@ -141,4 +144,29 @@ func (s *userService) RootHandler(w http.ResponseWriter, r *http.Request) {
 	params["users"] = users
 	params["myId"] = user.ID
 	s.renderFormParams(w, "root", params)
+}
+
+func (s *userService) SearchHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	namePrefix := vars["name"]
+	lastNamePrefix := vars["lastname"]
+
+	params := make(map[string]interface{})
+	if len(namePrefix) == 0 || len(lastNamePrefix) == 0 {
+		params["error"] = "все поля должны быть заполнены"
+		s.renderFormParams(w, "search", params)
+		return
+	}
+
+	users, err := s.UserRepository.FindByNameAndLastNamePrefix(namePrefix, lastNamePrefix)
+	if err != nil {
+		s.logError("UserRepository.FindByNameAndLastNamePrefix", err)
+		s.renderForm(w, "search", errors.New("внутренняя ошибка сервера"))
+		return
+	}
+
+	params["name"] = namePrefix
+	params["last_name"] = lastNamePrefix
+	params["users"] = users
+	s.renderFormParams(w, "search", params)
 }

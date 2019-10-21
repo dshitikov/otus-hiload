@@ -1,0 +1,1 @@
+ALTER TABLE users ADD last_name character varying (255) not null after name;

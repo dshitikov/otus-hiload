@@ -1,6 +1,6 @@
 <html>
 <body>
-<h1>Пользователь {{ .name }}</h1>
+<h1>Пользователь {{ .name }} {{ .last_name }}</h1>
 <a href="/">главная</a> | <a href="/logout">выход</a><br/><br/>
 {{if .image}}
     <label for="photo">Фото:</label><br/>

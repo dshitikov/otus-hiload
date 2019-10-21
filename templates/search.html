@@ -1,0 +1,9 @@
+<html>
+<body>
+<h1>Поиск</h1>
+<h2>имя начинается на {{ .name }}, фамилия на {{ .last_name }}</h2>
+{{ range .users }}
+{{ .Name }} {{ .LastName }}<br/>
+{{ end }}
+</body>
+</html>

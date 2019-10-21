@@ -74,14 +74,16 @@ func (s *userService) RegHandler(w http.ResponseWriter, r *http.Request) {
 
 		login := r.FormValue("login")
 		name := r.FormValue("name")
+		lastName := r.FormValue("last_name")
 		password := r.FormValue("password")
 		passwordConfirm := r.FormValue("password2")
 
 		params := make(map[string]string)
 		params["login"] = login
 		params["name"] = name
+		params["last_name"] = lastName
 
-		if len(login) == 0 || len(name) == 0 || len(password) == 0 || len(passwordConfirm) == 0 {
+		if len(login) == 0 || len(name) == 0 || len(lastName) == 0 || len(password) == 0 || len(passwordConfirm) == 0 {
 			params["error"] = "все поля должны быть заполнены"
 			s.renderFormParams(w, "reg", params)
 			return
@@ -94,7 +96,7 @@ func (s *userService) RegHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if s.UserRepository.IsLoginExist(login) {
-			params["error"] = fmt.Sprintf("имя пользователя [%s] уже занято", login)
+			params["error"] = fmt.Sprintf("логин пользователя [%s] уже занят", login)
 			s.renderFormParams(w, "reg", params)
 			return
 		}
@@ -102,6 +104,7 @@ func (s *userService) RegHandler(w http.ResponseWriter, r *http.Request) {
 		user := new(repository.User)
 		user.Login = login
 		user.Name = name
+		user.LastName = lastName
 		user.Password = password
 		err = s.UserRepository.Create(user)
 		s.logError("UserRepository.Create error: %s", err)
