@@ -5,6 +5,7 @@ services:
     image: otus-hiload:v1
     environment:
       DB_URI: "mysql://dbuser:123456@tcp(mysql)/hiload-db"
+#      GENERATE_FAKE_DATA: 'true'
     volumes:
       - "./storage:/opt/app/storage"
     ports:

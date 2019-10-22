@@ -2,8 +2,10 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	"strings"
 )
 
 type User struct {
@@ -27,6 +29,7 @@ type IUserRepository interface {
 	IsLoginExist(login string) bool
 	FindByLoginAndPassword(login string, password string) (*User, error)
 	FindByNameAndLastNamePrefix(name string, lastName string) ([]*User, error)
+	BulkCreate(users []*User)
 }
 
 func (r *repo) GetDB() *sql.DB {
@@ -170,4 +173,36 @@ func (r *repo) Create(user *User) error {
 	user.ID = userID
 
 	return nil
+}
+
+func (r *repo) BulkCreate(users []*User) {
+	size := 500
+	for min := 0; min < len(users); min = min + size {
+		max := min + size
+		if max > len(users) {
+			max = len(users)
+		}
+		log.Printf("bulk: %d - %d", min, max)
+		batch := users[min:max]
+		err := r.bulkCreate(batch)
+		if err != nil {
+			log.Printf("bulkCreate error: %s", err.Error())
+		}
+	}
+}
+
+func (r *repo) bulkCreate(users []*User) error {
+	valueStrings := make([]string, 0, len(users))
+	valueArgs := make([]interface{}, 0, len(users)*5)
+	for _, user := range users {
+		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, NOW())")
+		valueArgs = append(valueArgs, user.Login)
+		valueArgs = append(valueArgs, user.Name)
+		valueArgs = append(valueArgs, user.LastName)
+		valueArgs = append(valueArgs, user.PasswordHash)
+		valueArgs = append(valueArgs, user.Description)
+	}
+	stmt := fmt.Sprintf("INSERT INTO users(login, name, last_name, password_hash, description, created_at) VALUES %s", strings.Join(valueStrings, ","))
+	_, err := r.db.Exec(stmt, valueArgs...)
+	return err
 }

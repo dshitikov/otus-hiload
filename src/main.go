@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/gorilla/mux"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"otus-hiload/src/constants"
+	"otus-hiload/src/fake"
 	"otus-hiload/src/file_storage"
 	"otus-hiload/src/middleware"
 	"otus-hiload/src/repository"
@@ -31,6 +33,11 @@ func main() {
 	if len(dsn) == 0 {
 		log.Fatalf("STORAGE_DIR env variable not set")
 	}
+	generateStr := os.Getenv("GENERATE_FAKE_DATA")
+	generate := false
+	if len(generateStr) > 0 {
+		generate = true
+	}
 
 	err := repository.Migrate(dsn, "migrations")
 	if err != nil {
@@ -38,6 +45,25 @@ func main() {
 	}
 
 	repo := repository.NewMysqlRepository(dsn)
+
+	if generate {
+		log.Println("start generation")
+		count := 1000000
+		users := make([]*repository.User, count, count)
+		for i := 1; i <= count; i++ {
+			name, lastName := fake.GetRandomName()
+			user := new(repository.User)
+			user.Login = fmt.Sprintf("login%d", i)
+			user.Name = name
+			user.LastName = lastName
+			user.PasswordHash = ""
+			user.Description = fmt.Sprintf("описание %s %s", name, lastName)
+			users[i-1] = user
+		}
+		log.Println("generation finished, start saving")
+		repo.BulkCreate(users)
+		log.Println("saving finished")
+	}
 
 	sessionManager := scs.New()
 	sessionManager.Store = mysqlstore.New(repo.GetDB())
