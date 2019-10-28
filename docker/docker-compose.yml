@@ -7,11 +7,15 @@ services:
       DB_URI: "mysql://dbuser:123456@tcp(mysql)/hiload-db"
 #      GENERATE_FAKE_DATA: 'true'
     volumes:
-      - "./storage:/opt/app/storage"
+      - "./mnt/storage:/opt/app/storage"
     ports:
       - "8080:8080"
     depends_on:
       - mysql
+    ulimits:
+      nofile:
+        soft: "262144"
+        hard: "262144"
 
   mysql:
     image: mysql/mysql-server:latest
@@ -20,7 +24,15 @@ services:
       MYSQL_USER: "dbuser"
       MYSQL_PASSWORD: "123456"
       MYSQL_DATABASE: "hiload-db"
+    command:
+      --max-connections=2000
     ports:
       - "3306:3306"
+    volumes:
+      - "./mnt/mysql:/var/lib/mysql"
+    ulimits:
+      nofile:
+        soft: "262144"
+        hard: "262144"
 #    logging:
 #      driver: "none"

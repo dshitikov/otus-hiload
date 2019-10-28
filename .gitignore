@@ -1,5 +1,5 @@
 bin/
 !bin/.gitkeep
 .idea/
-storage/
-!storage/.gitkeep
+mnt/storage/
+!mnt/storage/.gitkeep

@@ -20,5 +20,6 @@ func NewMysqlRepository(dsn string) IRepository {
 	if err != nil {
 		log.Fatal(err)
 	}
+	db.SetConnMaxLifetime(0)
 	return &repo{db: db}
 }

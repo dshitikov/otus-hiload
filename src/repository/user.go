@@ -28,7 +28,7 @@ type IUserRepository interface {
 	Update(user *User) error
 	IsLoginExist(login string) bool
 	FindByLoginAndPassword(login string, password string) (*User, error)
-	FindByNameAndLastNamePrefix(name string, lastName string) ([]*User, error)
+	FindByNamePrefix(prefix string, limit int, minId int64) ([]*User, error)
 	BulkCreate(users []*User)
 }
 
@@ -115,23 +115,20 @@ func (r *repo) FindByLoginAndPassword(login string, password string) (*User, err
 	return user, nil
 }
 
-func (r *repo) FindByNameAndLastNamePrefix(name string, lastName string) ([]*User, error) {
-	count, err := r.countByNameAndLastNamePrefix(name, lastName)
-	if err != nil {
-		return nil, err
-	}
+func (r *repo) FindByNamePrefix(prefix string, limit int, minId int64) ([]*User, error) {
 
-	rows, err := r.db.Query("SELECT id, login, name, last_name, description, photo_file, created_at FROM users where name like ? and last_name like ?",
-		name+"%", lastName+"%")
+	rows, err := r.db.Query("(select id, name, last_name from users where id>? and name like ? limit 1000) "+
+		"union (select id, name, last_name from users where id>? and last_name like ? limit 1000) "+
+		"order by id asc limit ?", minId, prefix+"%", minId, prefix+"%", limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	users := make([]*User, 0, count)
+	users := make([]*User, 0, limit)
 	for rows.Next() {
 		user := new(User)
-		err := rows.Scan(&user.ID, &user.Login, &user.Name, &user.LastName, &user.Description, &user.PhotoFile, &user.CreatedAt)
+		err := rows.Scan(&user.ID, &user.Name, &user.LastName)
 		if err != nil {
 			return nil, err
 		}
@@ -142,13 +139,6 @@ func (r *repo) FindByNameAndLastNamePrefix(name string, lastName string) ([]*Use
 	}
 
 	return users, nil
-}
-
-func (r *repo) countByNameAndLastNamePrefix(name string, lastName string) (int64, error) {
-	var count int64
-	rows := r.db.QueryRow("SELECT count(*) FROM users where name like ? and last_name like ?", name+"%", lastName+"%")
-	err := rows.Scan(&count)
-	return count, err
 }
 
 func (r *repo) Create(user *User) error {

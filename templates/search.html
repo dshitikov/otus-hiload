@@ -1,9 +1,41 @@
 <html>
 <body>
-<h1>Поиск</h1>
-<h2>имя начинается на {{ .name }}, фамилия на {{ .last_name }}</h2>
+{{if .error}}
+    <p style="color:red">{{ .error}}</p>
+{{end}}
+<style type="text/css">
+    ul.pagination {
+        list-style:none;
+        margin: 0;
+        padding: 0;
+    }
+    ul.pagination li {
+        float: left;
+        padding: 5px;
+    }
+    p {
+        clear: both;
+    }
+</style>
+<form action="/search" method="get">
+    <fieldset>
+        <legend>Поиск</legend>
+
+        <label for="login">Префикс имени или фамилии</label>
+        <input type="text" name="prefix" id="prefix" value="{{ .prefix}}" /><br/><br/>
+
+        <input type="submit" value="Найти" />
+    </fieldset>
+</form>
+{{if .users}}
+<h3>Результаты поиска по префиксу {{ .prefix }} (minId={{ .fromId}})</h3>
+{{ if .hasNext}}
+    <a href="/search?prefix={{ .prefix }}&minId={{ .minId }}">Далее</a>
+{{end}}
+<br />
 {{ range .users }}
-{{ .Name }} {{ .LastName }}<br/>
+{{ .ID }} {{ .Name }} {{ .LastName }}<br/>
 {{ end }}
+{{end}}
 </body>
 </html>

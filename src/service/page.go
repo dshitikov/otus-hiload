@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"otus-hiload/src/constants"
 	"strconv"
+	"unicode/utf8"
 )
 
 type IPageService interface {
@@ -147,26 +148,44 @@ func (s *userService) RootHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *userService) SearchHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	namePrefix := vars["name"]
-	lastNamePrefix := vars["lastname"]
+	queryValues := r.URL.Query()
+	prefix := queryValues.Get("prefix")
 
+	if len(prefix) == 0 {
+		s.renderForm(w, "search", nil)
+		return
+	}
+
+	// submit
 	params := make(map[string]interface{})
-	if len(namePrefix) == 0 || len(lastNamePrefix) == 0 {
-		params["error"] = "все поля должны быть заполнены"
+	params["prefix"] = prefix
+
+	if utf8.RuneCountInString(prefix) < 3 {
+		params["error"] = "Минимальная длина префикса - 3 символа"
 		s.renderFormParams(w, "search", params)
 		return
 	}
 
-	users, err := s.UserRepository.FindByNameAndLastNamePrefix(namePrefix, lastNamePrefix)
+	fromID, _ := strconv.ParseInt(queryValues.Get("minId"), 10, 64)
+
+	users, err := s.UserRepository.FindByNamePrefix(prefix, s.searchPageSize+1, fromID)
 	if err != nil {
-		s.logError("UserRepository.FindByNameAndLastNamePrefix", err)
+		s.logError("UserRepository.FindByNamePrefix", err)
 		s.renderForm(w, "search", errors.New("внутренняя ошибка сервера"))
 		return
 	}
 
-	params["name"] = namePrefix
-	params["last_name"] = lastNamePrefix
+	hasNext := false
+	var minID int64 = 0
+	if len(users) == s.searchPageSize+1 {
+		hasNext = true
+		minID = users[s.searchPageSize-1].ID
+		users = users[:s.searchPageSize]
+	}
+
 	params["users"] = users
+	params["hasNext"] = hasNext
+	params["minId"] = minID
+
 	s.renderFormParams(w, "search", params)
 }

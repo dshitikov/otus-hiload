@@ -14,6 +14,7 @@ type userService struct {
 	UserRepository repository.IUserRepository
 	sessionManager *scs.SessionManager
 	storage        file_storage.IFileStorage
+	searchPageSize int
 }
 
 type IUserService interface {
@@ -25,7 +26,7 @@ type IUserService interface {
 
 func NewUserService(repository repository.IUserRepository, sessionManager *scs.SessionManager,
 	storage file_storage.IFileStorage) IUserService {
-	return &userService{UserRepository: repository, sessionManager: sessionManager, storage: storage}
+	return &userService{UserRepository: repository, sessionManager: sessionManager, storage: storage, searchPageSize: 1000}
 }
 
 func (s *userService) LoginHandler(w http.ResponseWriter, r *http.Request) {
