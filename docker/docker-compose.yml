@@ -5,6 +5,7 @@ services:
     image: otus-hiload:v1
     environment:
       DB_URI: "mysql://dbuser:123456@tcp(mysql)/hiload-db"
+      DB_URI_SLAVE: "mysql://dbuser:123456@tcp(mysql-slave)/hiload-db"
 #      GENERATE_FAKE_DATA: 'true'
     volumes:
       - "./mnt/storage:/opt/app/storage"
@@ -25,14 +26,95 @@ services:
       MYSQL_PASSWORD: "123456"
       MYSQL_DATABASE: "hiload-db"
     command:
-      --max-connections=2000
+      - --max-connections=2000
+      - --server-id=1
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --master-info-repository=TABLE
+      - --relay-log-info-repository=TABLE
+      - --binlog-checksum=NONE
+      - --log-slave-updates=ON
+      - --log-bin=binlog
+      - --binlog-format=ROW
     ports:
       - "3306:3306"
     volumes:
-      - "./mnt/mysql:/var/lib/mysql"
+      - "./mnt/mysql/data:/var/lib/mysql"
+#      - "./mnt/mysql/mysql.conf.cnf:/etc/mysql/conf.d/mysql.conf.cnf"
     ulimits:
       nofile:
         soft: "262144"
         hard: "262144"
 #    logging:
 #      driver: "none"
+
+  mysql-slave:
+    image: mysql/mysql-server:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_USER: "dbuser_slave"
+      MYSQL_PASSWORD: "123456"
+      MYSQL_DATABASE: "hiload-db"
+    command:
+      - --max-connections=2000
+      - --server-id=2
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --master-info-repository=TABLE
+      - --relay-log-info-repository=TABLE
+      - --binlog-checksum=NONE
+      - --log-slave-updates=ON
+      - --log-bin=binlog
+      - --binlog-format=ROW
+    ports:
+      - "3307:3306"
+    volumes:
+      - "./mnt/mysql-slave/data:/var/lib/mysql"
+#      - "./mnt/mysql-slave/mysql.conf.cnf:/etc/mysql/conf.d/mysql.conf.cnf"
+    ulimits:
+      nofile:
+        soft: "262144"
+        hard: "262144"
+#    logging:
+#      driver: "none"
+
+  cadvisor:
+    image: google/cadvisor:v0.33.0
+    command: -logtostderr -docker_only
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  prometheus:
+    image: prom/prometheus:v2.13.1
+    volumes:
+      - "./mnt/prometheus/data:/prometheus"
+      - "./mnt/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.external-url=http://185.22.61.111:9090'
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:6.4.3
+    volumes:
+      - "./mnt/grafana/data:/var/lib/grafana"
+#      - "./mnt/grafana/dashboards:/etc/grafana/dashboards"
+      - "./mnt/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources"
+#      - "./mnt/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards"
+    environment:
+      GF_SECURITY_ADMIN_USER: '${ADMIN_USER:-admin}'
+      GF_SECURITY_ADMIN_PASSWORD: '${ADMIN_PASSWORD:-admin}'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_PATHS_PROVISIONING: '/etc/grafana/provisioning/'
+    ports:
+      - "3000:3000"

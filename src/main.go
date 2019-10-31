@@ -29,6 +29,10 @@ func main() {
 	if len(dsn) == 0 {
 		log.Fatalf("DB_URI env variable not set")
 	}
+	slaveDsn := os.Getenv("DB_URI_SLAVE")
+	if len(slaveDsn) == 0 {
+		log.Fatalf("DB_URI_SLAVE env variable not set")
+	}
 	storageDir := os.Getenv("STORAGE_DIR")
 	if len(dsn) == 0 {
 		log.Fatalf("STORAGE_DIR env variable not set")
@@ -44,7 +48,7 @@ func main() {
 		log.Fatalf("migration error: %s", err.Error())
 	}
 
-	repo := repository.NewMysqlRepository(dsn)
+	repo := repository.NewMysqlRepository(dsn, slaveDsn)
 
 	if generate {
 		log.Println("start generation")
