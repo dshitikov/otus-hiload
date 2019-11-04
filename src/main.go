@@ -7,6 +7,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/gorilla/mux"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -69,8 +70,10 @@ func main() {
 		log.Println("saving finished")
 	}
 
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	sessionManager := scs.New()
-	sessionManager.Store = mysqlstore.New(repo.GetDB())
+	sessionManager.Store = mysqlstore.New(repo.GetMasterDB())
 
 	storage := file_storage.NewFileStorage(storageDir)
 	userService := service.NewUserService(repo, sessionManager, storage)

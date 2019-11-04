@@ -7,8 +7,11 @@ import (
 )
 
 type repo struct {
-	db      *sql.DB
-	slaveDb *sql.DB
+	db           *sql.DB
+	slaveDb      *sql.DB
+	readReplicas []*sql.DB
+	masterCnt    int32
+	slaveCnt     int32
 }
 
 type IRepository interface {
@@ -29,5 +32,6 @@ func NewMysqlRepository(dsn string, slaveDsn string) IRepository {
 		log.Fatal(err)
 	}
 	slaveDb.SetConnMaxLifetime(0)
-	return &repo{db: db, slaveDb: slaveDb}
+	replicas := []*sql.DB{db, slaveDb}
+	return &repo{db: db, slaveDb: slaveDb, readReplicas: replicas}
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	"math/rand"
 	"strings"
+	"sync/atomic"
 )
 
 type User struct {
@@ -21,7 +23,8 @@ type User struct {
 }
 
 type IUserRepository interface {
-	GetDB() *sql.DB
+	GetMasterDB() *sql.DB
+	GetRoDB() *sql.DB
 	GetAll() ([]*User, error)
 	Get(id int64) (*User, error)
 	Create(*User) error
@@ -32,8 +35,19 @@ type IUserRepository interface {
 	BulkCreate(users []*User)
 }
 
-func (r *repo) GetDB() *sql.DB {
+func (r *repo) GetMasterDB() *sql.DB {
 	return r.db
+}
+
+func (r *repo) GetRoDB() *sql.DB {
+	idx := rand.Intn(len(r.readReplicas))
+	if idx == 0 {
+		atomic.AddInt32(&r.masterCnt, 1)
+	} else {
+		atomic.AddInt32(&r.slaveCnt, 1)
+	}
+	// fmt.Printf("GetRoDB: idx=%d, masterCnt=%d, slaveCnt=%d\n", idx, r.masterCnt, r.slaveCnt)
+	return r.readReplicas[idx]
 }
 
 func (r *repo) GetAll() ([]*User, error) {
@@ -116,8 +130,7 @@ func (r *repo) FindByLoginAndPassword(login string, password string) (*User, err
 }
 
 func (r *repo) FindByNamePrefix(prefix string, limit int, minId int64) ([]*User, error) {
-
-	rows, err := r.db.Query("(select id, name, last_name from users where id>? and name like ? limit 1000) "+
+	rows, err := r.GetRoDB().Query("(select id, name, last_name from users where id>? and name like ? limit 1000) "+
 		"union (select id, name, last_name from users where id>? and last_name like ? limit 1000) "+
 		"order by id asc limit ?", minId, prefix+"%", minId, prefix+"%", limit)
 	if err != nil {
