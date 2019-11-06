@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log"
-	"math/rand"
 	"strings"
-	"sync/atomic"
 )
 
 type User struct {
@@ -33,21 +31,6 @@ type IUserRepository interface {
 	FindByLoginAndPassword(login string, password string) (*User, error)
 	FindByNamePrefix(prefix string, limit int, minId int64) ([]*User, error)
 	BulkCreate(users []*User)
-}
-
-func (r *repo) GetMasterDB() *sql.DB {
-	return r.db
-}
-
-func (r *repo) GetRoDB() *sql.DB {
-	idx := rand.Intn(len(r.readReplicas))
-	if idx == 0 {
-		atomic.AddInt32(&r.masterCnt, 1)
-	} else {
-		atomic.AddInt32(&r.slaveCnt, 1)
-	}
-	// fmt.Printf("GetRoDB: idx=%d, masterCnt=%d, slaveCnt=%d\n", idx, r.masterCnt, r.slaveCnt)
-	return r.readReplicas[idx]
 }
 
 func (r *repo) GetAll() ([]*User, error) {

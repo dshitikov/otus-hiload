@@ -12,10 +12,7 @@ server-id=2
 gtid_mode=ON
 enforce-gtid-consistency
 max-connections=2000
-replicate-do-db = otus-hiload
+replicate-do-db = hiload-db
 read-only=ON
 relay-log=relay-bin
 default_authentication_plugin=mysql_native_password
-# semi-sync
-#plugin-load=rpl_semi_sync_slave=semisync_slave.so
-#rpl_semi_sync_slave_enabled=1

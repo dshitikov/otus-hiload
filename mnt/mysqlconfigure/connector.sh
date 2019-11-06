@@ -26,7 +26,7 @@ else
   mysql --host mysql -uroot -e "SET GLOBAL rpl_semi_sync_master_enabled = 1;"
   # create master dump
   echo "create master dump"
-  mysqldump --host mysql -uroot --add-drop-database --triggers --routines --events --single-transaction --set-gtid-purged=OFF --databases hiload-db | gzip -6 -c > /tmp/backup.sql.gz
+  mysqldump --host mysql -uroot --add-drop-database --triggers --routines --events --single-transaction --databases hiload-db | gzip -6 -c > /tmp/backup.sql.gz
   # load to slaves
   echo "slave"
   zcat /tmp/backup.sql.gz | mysql --host mysql-slave -uroot

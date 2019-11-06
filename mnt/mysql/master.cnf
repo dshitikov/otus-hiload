@@ -16,7 +16,4 @@ enforce-gtid-consistency
 server_id=1
 max-connections=2000
 default_authentication_plugin=mysql_native_password
-# semi-sync
-#plugin-load=rpl_semi_sync_master=semisync_master.so
-#rpl_semi_sync_master_enabled=1
-#rpl_semi_sync_master_timeout=1000 # 1 second
+

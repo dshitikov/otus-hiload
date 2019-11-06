@@ -22,7 +22,7 @@ services:
     image: mysql:latest
     environment:
       - "MYSQL_ROOT_PASSWORD=123456"
-#      - "MYSQL_REPLICATION_INIT=1"
+      - "MYSQL_REPLICATION_INIT=1"
     volumes:
       - "./mnt/mysqlconfigure/connector.sh:/tmp/connector.sh"
     command: /tmp/connector.sh

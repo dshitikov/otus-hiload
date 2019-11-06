@@ -51,6 +51,19 @@ func main() {
 
 	repo := repository.NewMysqlRepository(dsn, slaveDsn)
 
+	cnt := 0
+	for {
+		test := new(repository.Test)
+		createdTest, err := repo.CreateTest(test)
+		if err != nil {
+			log.Fatalf("error while creating test record: %s", err.Error())
+			break
+		}
+		cnt++
+		log.Printf("created %d test record (id=%d)", cnt, createdTest.ID)
+		time.Sleep(time.Millisecond * 200)
+	}
+
 	if generate {
 		log.Println("start generation")
 		count := 1000000
