@@ -13,4 +13,5 @@ clean:
 docker:
 	 docker build --file="./docker/Dockerfile" --tag="otus-hiload:v1" --force-rm .
 compose-up:
-	 docker-compose --file "./docker/docker-compose.yml" --project-directory . up --abort-on-container-exit
+	 docker-compose --file "./docker/docker-compose.yml" --project-directory . up
+#--abort-on-container-exit

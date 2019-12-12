@@ -1,0 +1,8 @@
+{
+  "sharded": false,
+  "tables": {
+    "messages_seq": {
+      "type": "sequence"
+    }
+  }
+}

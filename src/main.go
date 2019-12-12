@@ -7,6 +7,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/gorilla/mux"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,6 +30,10 @@ func main() {
 	if len(dsn) == 0 {
 		log.Fatalf("DB_URI env variable not set")
 	}
+	shardedDsn := os.Getenv("SHARDED_DB_URI")
+	if len(shardedDsn) == 0 {
+		log.Fatalf("SHARDED_DB_URI env variable not set")
+	}
 	storageDir := os.Getenv("STORAGE_DIR")
 	if len(dsn) == 0 {
 		log.Fatalf("STORAGE_DIR env variable not set")
@@ -44,7 +49,11 @@ func main() {
 		log.Fatalf("migration error: %s", err.Error())
 	}
 
-	repo := repository.NewMysqlRepository(dsn)
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	userRepo := repository.NewUserRepository(dsn)
+	chatRepo := repository.NewChatRepository(dsn)
+	msgRepo := repository.NewMessageRepository(shardedDsn)
 
 	if generate {
 		log.Println("start generation")
@@ -61,15 +70,16 @@ func main() {
 			users[i-1] = user
 		}
 		log.Println("generation finished, start saving")
-		repo.BulkCreate(users)
+		userRepo.BulkCreate(users)
 		log.Println("saving finished")
 	}
 
 	sessionManager := scs.New()
-	sessionManager.Store = mysqlstore.New(repo.GetDB())
+	sessionManager.Store = mysqlstore.New(userRepo.GetDB())
 
 	storage := file_storage.NewFileStorage(storageDir)
-	userService := service.NewUserService(repo, sessionManager, storage)
+	userService := service.NewUserService(userRepo, sessionManager, storage)
+	chatService := service.NewChatService(userRepo, chatRepo, msgRepo, sessionManager)
 
 	r := mux.NewRouter()
 	r.Use(middleware.RecoverHandler)
@@ -84,6 +94,13 @@ func main() {
 	r.Handle(constants.RootPath, middleware.AuthHandler(http.HandlerFunc(userService.RootHandler), sessionManager)).Methods("GET")
 	r.Handle(constants.UserPath, middleware.AuthHandler(http.HandlerFunc(userService.UserHandler), sessionManager)).Methods("GET")
 	r.Handle(constants.SearchPath, http.HandlerFunc(userService.SearchHandler)).Methods("GET")
+
+	r.Handle(constants.ChatsPath, middleware.AuthHandler(http.HandlerFunc(chatService.ListChatsHandler), sessionManager)).Methods("GET")
+	r.Handle(constants.ChatFormPath, middleware.AuthHandler(http.HandlerFunc(chatService.LoadMessagesFormHandler), sessionManager)).Methods("GET")
+	r.Handle(constants.LoadMessagePath, middleware.AuthHandler(http.HandlerFunc(chatService.LoadChatMessagesHandler), sessionManager)).Methods("GET")
+	// add
+	r.Handle(constants.FirstMessagePath, middleware.AuthHandler(http.HandlerFunc(chatService.AddFirstMessageHandler), sessionManager)).Methods("POST")
+	r.Handle(constants.MessagePath, middleware.AuthHandler(http.HandlerFunc(chatService.AddMessageHandler), sessionManager)).Methods("POST")
 
 	r.PathPrefix("/img/").Handler(http.StripPrefix("/img/", http.FileServer(http.Dir(storageDir))))
 

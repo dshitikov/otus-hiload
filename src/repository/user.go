@@ -20,10 +20,20 @@ type User struct {
 	CreatedAt    sql.NullTime
 }
 
+type userRepo struct {
+	*repo
+}
+
+func NewUserRepository(dsn string) IUserRepository {
+	repo := NewMysqlRepository(dsn)
+	return &userRepo{repo: repo}
+}
+
 type IUserRepository interface {
 	GetDB() *sql.DB
 	GetAll() ([]*User, error)
 	Get(id int64) (*User, error)
+	GetByIDs(ids []int64) ([]*User, error)
 	Create(*User) error
 	Update(user *User) error
 	IsLoginExist(login string) bool
@@ -36,7 +46,7 @@ func (r *repo) GetDB() *sql.DB {
 	return r.db
 }
 
-func (r *repo) GetAll() ([]*User, error) {
+func (r *userRepo) GetAll() ([]*User, error) {
 	rows, err := r.db.Query("SELECT id, login, name, last_name, description, photo_file, created_at FROM users")
 	if err != nil {
 		return nil, err
@@ -59,7 +69,7 @@ func (r *repo) GetAll() ([]*User, error) {
 	return users, nil
 }
 
-func (r *repo) Get(id int64) (*User, error) {
+func (r *userRepo) Get(id int64) (*User, error) {
 	row := r.db.QueryRow("SELECT id, login, name, last_name, description, photo_file, created_at FROM users WHERE id = ?", id)
 
 	user := new(User)
@@ -70,7 +80,32 @@ func (r *repo) Get(id int64) (*User, error) {
 	return user, nil
 }
 
-func (r *repo) Update(user *User) error {
+func (r *userRepo) GetByIDs(ids []int64) ([]*User, error) {
+	idsIn := make([]interface{}, len(ids), len(ids))
+	for i := range ids {
+		idsIn[i] = ids[i]
+	}
+	rows, err := r.db.Query("SELECT id, login, name, last_name, description, photo_file, created_at FROM users WHERE id in(?"+strings.Repeat(",? ", len(ids)-1)+")", idsIn...)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]*User, 0)
+	for rows.Next() {
+		user := new(User)
+		err := rows.Scan(&user.ID, &user.Login, &user.Name, &user.LastName, &user.Description, &user.PhotoFile, &user.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (r *userRepo) Update(user *User) error {
 	_, err := r.db.Exec("UPDATE users set description = ?, photo_file = ? where id = ?", user.Description, user.PhotoFile, user.ID)
 
 	if err != nil {
@@ -80,7 +115,7 @@ func (r *repo) Update(user *User) error {
 	return nil
 }
 
-func (r *repo) IsLoginExist(login string) bool {
+func (r *userRepo) IsLoginExist(login string) bool {
 	row := r.db.QueryRow("SELECT id FROM users WHERE login = ?", login)
 
 	user := new(User)
@@ -97,7 +132,7 @@ func (r *repo) IsLoginExist(login string) bool {
 	return true
 }
 
-func (r *repo) FindByLoginAndPassword(login string, password string) (*User, error) {
+func (r *userRepo) FindByLoginAndPassword(login string, password string) (*User, error) {
 	row := r.db.QueryRow("SELECT id, login, name, last_name, password_hash, description, photo_file, created_at FROM users WHERE login = ?", login)
 
 	user := new(User)
@@ -115,7 +150,7 @@ func (r *repo) FindByLoginAndPassword(login string, password string) (*User, err
 	return user, nil
 }
 
-func (r *repo) FindByNamePrefix(prefix string, limit int, minId int64) ([]*User, error) {
+func (r *userRepo) FindByNamePrefix(prefix string, limit int, minId int64) ([]*User, error) {
 
 	rows, err := r.db.Query("(select id, name, last_name from users where id>? and name like ? limit 1000) "+
 		"union (select id, name, last_name from users where id>? and last_name like ? limit 1000) "+
@@ -141,7 +176,7 @@ func (r *repo) FindByNamePrefix(prefix string, limit int, minId int64) ([]*User,
 	return users, nil
 }
 
-func (r *repo) Create(user *User) error {
+func (r *userRepo) Create(user *User) error {
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -165,7 +200,7 @@ func (r *repo) Create(user *User) error {
 	return nil
 }
 
-func (r *repo) BulkCreate(users []*User) {
+func (r *userRepo) BulkCreate(users []*User) {
 	size := 500
 	for min := 0; min < len(users); min = min + size {
 		max := min + size
@@ -181,7 +216,7 @@ func (r *repo) BulkCreate(users []*User) {
 	}
 }
 
-func (r *repo) bulkCreate(users []*User) error {
+func (r *userRepo) bulkCreate(users []*User) error {
 	valueStrings := make([]string, 0, len(users))
 	valueArgs := make([]interface{}, 0, len(users)*5)
 	for _, user := range users {

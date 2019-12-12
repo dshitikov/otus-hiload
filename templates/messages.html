@@ -1,0 +1,88 @@
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js">
+    </script>
+</head>
+<body>
+<h1>Чат с {{ .user2.LastName}} {{ .user2.Name }}</h1>
+<a href="/">главная</a> | <a href="/logout">выход</a><br/><br/>
+<script type="text/javascript">
+    {{ if .chat_id }}
+    let chatId = '{{ .chat_id }}'
+    {{ else }}
+    let chatId = null
+    {{ end }}
+
+    const user2Id = '{{ .user2.ID }}'
+
+    let minMsgId = null
+    let maxMsgId = '0'
+
+    function setRefresh() {
+      console.log("setRefresh")
+      setInterval(function()
+      {
+        refreshChat()
+      }, 500);
+    }
+
+    function refreshChat() {
+      console.log(chatId, "refreshChat")
+      $.getJSON('/chats/' + chatId + '/messages/' + maxMsgId, function(data) {
+        $.each(data, function(i, item) {
+          let date = new Date(item.Date)
+          $('#messages').append('<div> ' + item.LastName + ' ' + item.Name + ' [' + date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU') + ']: ' + item.Text + ' </div>')
+          maxMsgId = item.ID
+        })
+      })
+    }
+
+    $(document).ready(function() {
+        if (chatId) {
+          setRefresh()
+        }
+
+      $("#sendMessage").click(function() {
+        let text = $.trim($("#message").val());
+        console.log(text, 'text')
+        if (text != "") {
+          $("#message").val('')
+          if (chatId) {
+            $.ajax
+            ({
+              url: '/chats/' + chatId + '/messages',
+              data: text,
+              type: 'post',
+              success: function () {
+                refreshChat()
+              },
+              error: function (err) {
+                alert(err)
+              }
+            })
+          } else {
+            $.ajax
+            ({
+              url: '/chats/' + user2Id + '/firstmessage',
+              data: text,
+              type: 'post',
+              success: function (result) {
+                chatId = result
+                refreshChat()
+              },
+              error: function (err) {
+                alert(err)
+              }
+            })
+          }
+        }
+      })
+    });
+
+</script>
+<div id="messages">
+
+</div>
+<textarea id="message" rows="5" cols="40"></textarea> <button id="sendMessage" type="button">Отправить</button>
+</body>
+</html>
