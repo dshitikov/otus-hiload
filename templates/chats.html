@@ -1,0 +1,9 @@
+<html>
+<body>
+<h1>Чаты</h1>
+<a href="/">главная</a> | <a href="/logout">выход</a><br/><br/>
+{{ range .chats }}
+    <a href="/chats/{{ .UserID }}">{{ .LastName }} {{ .Name }}</a><br/>
+{{ end }}
+</body>
+</html>

@@ -7,7 +7,6 @@ require (
 	github.com/alexedwards/scs/v2 v2.2.0
 	github.com/golang-migrate/migrate/v4 v4.6.2
 	github.com/gorilla/mux v1.7.3
-	github.com/gronpipmaster/go-widgets v0.0.0-20160908140342-1ad2a1cebddd
 	github.com/satori/go.uuid v1.2.0
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
 )

@@ -14,7 +14,7 @@ type IRepository interface {
 	IUserRepository
 }
 
-func NewMysqlRepository(dsn string) IRepository {
+func NewMysqlRepository(dsn string) *repo {
 	dsn = strings.Replace(dsn, "mysql://", "", 1) + "?parseTime=true"
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {

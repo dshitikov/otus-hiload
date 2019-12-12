@@ -104,12 +104,24 @@ func (s *userService) MeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *userService) UserHandler(w http.ResponseWriter, r *http.Request) {
+	userSelf, err := s.getUserFromContext(r.Context())
+	if err != nil {
+		s.logError("UserHandler getUserFromContext", err)
+		http.Redirect(w, r, constants.RootPath, http.StatusFound)
+		return
+	}
+
 	vars := mux.Vars(r)
 	idStr := vars["id"]
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		s.logError("UserHandler parseInt", err)
 		http.Redirect(w, r, constants.RootPath, http.StatusFound)
+	}
+
+	if userSelf.ID == id {
+		s.logError("attempt to open itself by id -> redirect to /me", err)
+		http.Redirect(w, r, constants.MePath, http.StatusFound)
 	}
 
 	user, err := s.UserRepository.Get(id)
@@ -119,6 +131,7 @@ func (s *userService) UserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := make(map[string]string)
+	params["id"] = idStr
 	params["description"] = user.Description
 	params["name"] = user.Name
 	params["last_name"] = user.LastName
@@ -128,8 +141,9 @@ func (s *userService) UserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *userService) RootHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := s.getUserFromContext(r.Context())
 	params := make(map[string]interface{})
+
+	user, err := s.getUserFromContext(r.Context())
 	if err != nil {
 		s.logError("RootHandler getUserFromContext", err)
 		s.renderForm(w, "root", errors.New("внутренняя ошибка сервера"))

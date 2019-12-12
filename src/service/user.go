@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/alexedwards/scs/v2"
@@ -11,6 +12,7 @@ import (
 )
 
 type userService struct {
+	*baseService
 	UserRepository repository.IUserRepository
 	sessionManager *scs.SessionManager
 	storage        file_storage.IFileStorage
@@ -24,9 +26,9 @@ type IUserService interface {
 	IPageService
 }
 
-func NewUserService(repository repository.IUserRepository, sessionManager *scs.SessionManager,
-	storage file_storage.IFileStorage) IUserService {
-	return &userService{UserRepository: repository, sessionManager: sessionManager, storage: storage, searchPageSize: 1000}
+func NewUserService(repository repository.IUserRepository, sessionManager *scs.SessionManager, storage file_storage.IFileStorage) IUserService {
+	baseService := &baseService{sessionManager: sessionManager, userRepository: repository}
+	return &userService{baseService: baseService, UserRepository: repository, sessionManager: sessionManager, storage: storage, searchPageSize: 1000}
 }
 
 func (s *userService) LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -130,4 +132,24 @@ func (s *userService) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	err := s.setUnauthenticated(r.Context())
 	s.logError("setUnauthenticated", err)
 	http.Redirect(w, r, constants.RootPath, http.StatusFound)
+}
+
+func (s *userService) setAuthenticated(ctx context.Context, user *repository.User) error {
+	err := s.sessionManager.RenewToken(ctx)
+	if err != nil {
+		return err
+	}
+	s.sessionManager.Put(ctx, constants.CtxAuthenticated, true)
+	s.sessionManager.Put(ctx, constants.CtxUserId, user.ID)
+	return nil
+}
+
+func (s *userService) setUnauthenticated(ctx context.Context) error {
+	err := s.sessionManager.RenewToken(ctx)
+	if err != nil {
+		return err
+	}
+	s.sessionManager.Put(ctx, constants.CtxAuthenticated, false)
+	s.sessionManager.Put(ctx, constants.CtxUserId, nil)
+	return nil
 }
