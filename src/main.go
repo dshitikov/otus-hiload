@@ -29,6 +29,10 @@ func main() {
 	if len(dsn) == 0 {
 		log.Fatalf("DB_URI env variable not set")
 	}
+	tarantoolHostPort := os.Getenv("TARANTOOL_HOSTPORT")
+	if len(tarantoolHostPort) == 0 {
+		log.Fatalf("TARANTOOL_HOSTPORT env variable not set")
+	}
 	storageDir := os.Getenv("STORAGE_DIR")
 	if len(dsn) == 0 {
 		log.Fatalf("STORAGE_DIR env variable not set")
@@ -45,6 +49,7 @@ func main() {
 	}
 
 	repo := repository.NewMysqlRepository(dsn)
+	tRepo := repository.NewTarantoolRepository(tarantoolHostPort)
 
 	if generate {
 		log.Println("start generation")
@@ -69,7 +74,7 @@ func main() {
 	sessionManager.Store = mysqlstore.New(repo.GetDB())
 
 	storage := file_storage.NewFileStorage(storageDir)
-	userService := service.NewUserService(repo, sessionManager, storage)
+	userService := service.NewUserService(repo, tRepo, sessionManager, storage)
 
 	r := mux.NewRouter()
 	r.Use(middleware.RecoverHandler)

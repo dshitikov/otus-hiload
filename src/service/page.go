@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"otus-hiload/src/constants"
+	"otus-hiload/src/repository"
 	"strconv"
 	"unicode/utf8"
 )
@@ -150,6 +151,7 @@ func (s *userService) RootHandler(w http.ResponseWriter, r *http.Request) {
 func (s *userService) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	queryValues := r.URL.Query()
 	prefix := queryValues.Get("prefix")
+	searchType := queryValues.Get("type")
 
 	if len(prefix) == 0 {
 		s.renderForm(w, "search", nil)
@@ -168,9 +170,36 @@ func (s *userService) SearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	fromID, _ := strconv.ParseInt(queryValues.Get("minId"), 10, 64)
 
-	users, err := s.UserRepository.FindByNamePrefix(prefix, s.searchPageSize+1, fromID)
-	if err != nil {
-		s.logError("UserRepository.FindByNamePrefix", err)
+	var users = make([]*repository.User, 0, s.searchPageSize+1)
+	var err error
+
+	switch searchType {
+	case "mysql":
+		users, err = s.UserRepository.FindByNamePrefix(prefix, s.searchPageSize+1, fromID)
+		if err != nil {
+			s.logError("UserRepository.FindByNamePrefix", err)
+			s.renderForm(w, "search", errors.New("внутренняя ошибка сервера"))
+			return
+		}
+		break
+	case "tarantool_sql":
+		users, err = s.tarantoolRepository.FindByNamePrefixSQL(prefix, s.searchPageSize+1, fromID)
+		if err != nil {
+			s.logError("tarantoolRepository.FindByNamePrefixSQL", err)
+			s.renderForm(w, "search", errors.New("внутренняя ошибка сервера"))
+			return
+		}
+		break
+	case "tarantool":
+		users, err = s.tarantoolRepository.FindByNamePrefix(prefix, s.searchPageSize+1, fromID)
+		if err != nil {
+			s.logError("tarantoolRepository.FindByNamePrefix", err)
+			s.renderForm(w, "search", errors.New("внутренняя ошибка сервера"))
+			return
+		}
+		break
+	default:
+		s.logError("switch searchType", errors.New("invalid search type"))
 		s.renderForm(w, "search", errors.New("внутренняя ошибка сервера"))
 		return
 	}

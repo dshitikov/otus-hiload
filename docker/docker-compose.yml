@@ -5,34 +5,67 @@ services:
     image: otus-hiload:v1
     environment:
       DB_URI: "mysql://dbuser:123456@tcp(mysql)/hiload-db"
-#      GENERATE_FAKE_DATA: 'true'
+      TARANTOOL_HOSTPORT: "tarantool:3301"
+      #GENERATE_FAKE_DATA: 'true'
     volumes:
       - "./mnt/storage:/opt/app/storage"
     ports:
       - "8080:8080"
+#      - "40000:40000"
+#    security_opt:
+#      - seccomp:unconfined
+#    cap_add:
+#      - SYS_PTRACE
     depends_on:
       - mysql
+      - tarantool
     ulimits:
       nofile:
-        soft: "262144"
-        hard: "262144"
+        soft: 262144
+        hard: 262144
+
+  mysqlconfigure:
+    image: mysql:latest
+    environment:
+      - "MYSQL_ROOT_PASSWORD=123456"
+      - "MYSQL_REPLICATION_INIT=1"
+    volumes:
+      - "./mnt/mysqlconfigure/configure.sh:/tmp/configure.sh"
+    command: /tmp/configure.sh
+    depends_on:
+      - mysql
+      - backend
 
   mysql:
     image: mysql/mysql-server:latest
     environment:
+      MYSQL_ROOT_HOST: "%"
       MYSQL_ROOT_PASSWORD: "123456"
       MYSQL_USER: "dbuser"
       MYSQL_PASSWORD: "123456"
       MYSQL_DATABASE: "hiload-db"
-    command:
-      --max-connections=2000
     ports:
       - "3306:3306"
     volumes:
-      - "./mnt/mysql:/var/lib/mysql"
+      - "./mnt/mysql/data:/var/lib/mysql"
+      - "./mnt/mysql/my.cnf:/etc/my.cnf"
     ulimits:
       nofile:
-        soft: "262144"
-        hard: "262144"
-#    logging:
-#      driver: "none"
+        soft: 262144
+        hard: 262144
+
+  replicator:
+    image: mysql-tarantool-replicator:latest
+    depends_on:
+      - mysql
+      - tarantool
+      - backend
+    volumes:
+      - "./mnt/replicator/replicatord.yml:/replicatord.yml"
+    command: /replicatord -c replicatord.yml -l /dev/stdout
+
+  tarantool:
+    image: tarantool/tarantool:2.1
+    volumes:
+      - "./mnt/tarantool/instance.lua:/opt/tarantool/instance.lua"
+    command: tarantool /opt/tarantool/instance.lua

@@ -1,0 +1,23 @@
+mysql:
+  host: mysql
+  port: 3306
+  user: tarantool
+  password: 123456
+  connect_retry: 15 # seconds
+
+tarantool:
+  host: tarantool:3301
+  binlog_pos_space: 512 # space_id for replication daemon purposes
+  binlog_pos_key: 0
+  connect_retry: 15 # seconds
+  sync_retry: 1000 # milliseconds
+
+mappings:
+  - database: hiload-db
+    table: users
+    columns: [ id, name, last_name]
+    space: 513 # space_id for data replication
+    key_fields:  [0]
+    # insert_call: function_name
+    # update_call: function_name
+    # delete_call: function_name

@@ -11,10 +11,11 @@ import (
 )
 
 type userService struct {
-	UserRepository repository.IUserRepository
-	sessionManager *scs.SessionManager
-	storage        file_storage.IFileStorage
-	searchPageSize int
+	UserRepository      repository.IUserRepository
+	tarantoolRepository repository.ITarantoolRepository
+	sessionManager      *scs.SessionManager
+	storage             file_storage.IFileStorage
+	searchPageSize      int
 }
 
 type IUserService interface {
@@ -24,9 +25,10 @@ type IUserService interface {
 	IPageService
 }
 
-func NewUserService(repository repository.IUserRepository, sessionManager *scs.SessionManager,
+func NewUserService(repository repository.IUserRepository, tRepository repository.ITarantoolRepository, sessionManager *scs.SessionManager,
 	storage file_storage.IFileStorage) IUserService {
-	return &userService{UserRepository: repository, sessionManager: sessionManager, storage: storage, searchPageSize: 1000}
+	return &userService{UserRepository: repository, tarantoolRepository: tRepository, sessionManager: sessionManager,
+		storage: storage, searchPageSize: 1000}
 }
 
 func (s *userService) LoginHandler(w http.ResponseWriter, r *http.Request) {
